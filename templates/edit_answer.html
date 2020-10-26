@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+
+
+{% block content %}
+{% load markdownify %}
+<h3>Edit your answer to the following question...</h3>
+<div class="question-pane">
+    <div class="test-border question-box">
+            <h3>{{ question.title }}</h3>
+            <div class="qa-body">{{question.body|markdownify}}</div>
+        <div class="flex-space">
+            <p class="attribution">by <a href="{% url 'user_profile' pk=question.author.pk %}">{{question.author.username}}</a> on {{question.edited}}</p>
+        </div>
+    </div>
+<div>
+    <form action="{% url 'edit_answer' pk=answer.pk %}" method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div>
+            <button type="submit">Save Answer</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
