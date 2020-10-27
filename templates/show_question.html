@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div>
+    <div class="question-show centerer">
+        <h2 class="question-header"> 
+            {{ question.title }}
+        </h2>
+        <div></div>
+        <div class="list-link-div v-center">
+            <a href="{% url 'list_questions' %}" class="list-link">Home</a>
+        </div>
+    </div>
+    <!-- <h1> Here is a question </h1>    -->
+    {% load markdownify %}
+    <div class="question-div">
+        <div class="question-pane">
+            <div class="test-border question-box">
+                <div class="flex-space">
+                    <div class="qa-body">{{question.body|markdownify}}</div>
+                    <div class="flex-v-space">
+                    {% if question in user.q_faves.all %}
+                    <a data-questionid="{{question.pk}}" class="q-toggler icon-a question-title-top toggler" href="#">&#x2605;</a>
+                    {% else %}
+                    <a data-questionid="{{question.pk}}" class="q-toggler icon-a question-title-top toggler" href="#">&#x2606;</a>
+                    {% endif %}
+                    </div>
+                </div>
+                <div class="flex-space">
+                    <p class="attribution">by <a href="{% url 'user_profile' pk=question.author.pk %}">{{question.author.username}}</a> on {{question.edited}}</p>
+                    {% if question in user.questions.all %}
+                    <div class="v-center">
+                        <div>
+                            <a class="edit-delete" href="{% url 'edit_question' pk=question.pk %}">Edit Question</a>
+                            <a class="edit-delete" href="{% url 'delete_question' pk=question.pk %}">Delete Question</a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% if question.answers.count > 0 %}
+                <p> Answers to question:</p>
+            {% endif %}
+            {% for answer in question.answers.all %}
+                <div class="test-border question-box">
+                    <div class="flex-space">
+                        <div class="qa-body">
+                            {{ answer.body|markdownify }}
+                        </div>
+                        <div class="button-holder">
+                            {% if answer in user.a_faves.all %}
+                                <a data-answerid="{{answer.pk}}" class="toggler a-toggler icon-a question-title-top" href="#">&#x2605;</a>
+                            {% else %}
+                                <a data-answerid="{{answer.pk}}" class="toggler a-toggler icon-a question-title-top" href="#">&#x2606;</a>
+                            {% endif %}
+                            {% if answer.is_correct %}
+                                {% if user == answer.question.author %}
+                                    <a data-answerid="{{answer.pk}}" class="toggler c-toggler icon-a  question-title-top" href="#">&#x2713;</a>
+                                {% else %}
+                                    <p class="icon-a  question-title-top">&#x2713;</p>
+                                {% endif %}
+                            {% else %}
+                                {% if user == answer.question.author %}
+                                    <a data-answerid="{{answer.pk}}" class="toggler c-toggler icon-a  question-title-top" href="#">&#x25EF;</a>
+                                {% else %}
+                                    <p class="icon-a  question-title-top">&#x25EF;</p>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="flex-space">
+                        <p class="attribution">by <a href="{% url 'user_profile' pk=answer.author.pk %}">{{answer.author.username}}</a> on {{answer.created}}</p>
+                        {% if answer in user.answers.all %}
+                        <div class="v-center">
+                            <div>
+                                <a class="edit-delete" href="{% url 'edit_answer' pk=answer.pk %}">Edit Answer</a>
+                                <a class="edit-delete" href="{% url 'delete_answer' pk=answer.pk %}">Delete Answer</a>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+            <h3>Add answer:</h3>
+            <form action="{% url 'add_answer' pk=question.pk %}" method="POST">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <div>
+                    <button type="submit">Add Answer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const qTogglerList = document.querySelectorAll(".q-toggler")    
+    for (let toggler of qTogglerList) {
+        toggler.addEventListener("click", (e) => {
+            e.preventDefault()
+            const questionPk = toggler.dataset.questionid
+            fetch(`/question/${questionPk}/fave`, {
+                method: 'POST'
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.favorite) {
+                    toggler.innerHTML = "&#x2605;"
+                } else {
+                    toggler.innerHTML = "&#x2606;"
+                }
+            })
+        })
+    }
+
+    const aTogglerList = document.querySelectorAll(".a-toggler")    
+    for (let toggler of aTogglerList) {
+        toggler.addEventListener("click", (e) => {
+            e.preventDefault()
+            const answerPk = toggler.dataset.answerid
+            fetch(`/answer/${answerPk}/fave`, {
+                method: 'POST'
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.favorite) {
+                    toggler.innerHTML = "&#x2605;"
+                } else {
+                    toggler.innerHTML = "&#x2606;"
+                }
+            })
+        })
+    }
+
+    const cTogglerList = document.querySelectorAll(".c-toggler")    
+    for (let toggler of cTogglerList) {
+        toggler.addEventListener("click", (e) => {
+            e.preventDefault()
+            const answerPk = toggler.dataset.answerid
+            fetch(`/answer/${answerPk}/correct`, {
+                method: 'POST'
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log(data.correct)
+                if (data.correct) {
+                    toggler.innerHTML = "&#x2713;"
+                } else {
+                    toggler.innerHTML = "&#x25EF;"
+                }
+            })
+        })
+    }
+</script>
+
+{% endblock %}
