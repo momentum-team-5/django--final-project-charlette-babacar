@@ -2,8 +2,6 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-from django.core.mail import send_mail
-from project.settings import EMAIL_HOST_USER
 from .models import Answer, Question
 from .forms import AnswerForm, QuestionForm
 from users.models import User
@@ -11,26 +9,24 @@ from django.views import View
 from django.http import JsonResponse
 
 # Create your views here.
-# def list_questions(request):
-#     user = request.user
-#     questions = user.questions.all()
-
-#     return render(request, 'core/index.html', {"user":user, "questions":questions})
-
-class ListQuestions(View):
-    # stuff = "Some *test* [link](#)"
-        
-    def get(self, request):
-        user = request.user
-        questions = Question.objects.order_by("-created")
-        return render(request, 'core/index.html', {"questions":questions, "user":user})
-
-
-class AddQuestion(View):
-    def get(self, request):
+def list_questions(request):
+    user = request.user
+    questions = user.questions.all()
+    return render(request, 'index.html', {"user":user, "questions":questions})
+    
+@login_required
+def add_question(request):
+    if request.method == 'GET':
         form = QuestionForm()
-        user = request.user
-        return render(request, 'core/add_question.html', {"form": form})
+
+    # else:
+    #     form = QuestionForm(data=request.POST)
+    #     if form.is_valid():
+    #         form = form.save(commit=False)
+    #         form.save()
+    #         return redirect(to='question_list')
+
+    return render(request, "add_question.html", {"form": form})        
 
     def post(self, request):
         form = QuestionForm(data=request.POST)

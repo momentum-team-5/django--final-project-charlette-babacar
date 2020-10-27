@@ -50,7 +50,8 @@ INSTALLED_APPS = [
     'registration', 
     # Project-specific
     'users',
-]
+    'core',
+]  
 
 MIDDLEWARE = [
     'debug_toolbar.middleware.DebugToolbarMiddleware',
@@ -76,7 +77,6 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'core'
             ],
         },
     },
@@ -139,3 +139,4 @@ INTERNAL_IPS = [
     '127.0.0.1',
     # ...
 ]
+
