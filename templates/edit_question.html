@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 
-
-
 {% block content %}
-<h3>Edit this question...</h3>
+<h1>Edit Question</h1>
+
 <div>
     <form action="{% url 'edit_question' pk=question.pk %}" method="POST">
         {% csrf_token %}
         {{ form.as_p }}
-        <div>
-            <button type="submit">Save Question</button>
-        </div>
+    <div>
+        <button type="submit">Update Question</button>
+    </div>
     </form>
 </div>
+
 {% endblock %}

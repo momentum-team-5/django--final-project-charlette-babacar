@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ question.question }}</h1>
+
+<div class="flex flex-wrap"> 
+    <ul>
+        {% for answer in answers %}
+        <li>{{ answer.answer }}
+            <button onclick="sendFavorite(this, '{% url 'add_favorite' pk=answer.pk %}')">{{ answer.numfavorites }} favorites</button>
+            {% if request.user.is_authenticated and request.user == question.user %}
+            <a class="red" href="{% url 'delete_answer' pk=answer.pk %}">Delete Answer</a>
+        {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+</div>  
+{% endblock %}

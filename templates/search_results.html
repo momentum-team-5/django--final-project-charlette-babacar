@@ -1,69 +1,14 @@
 {% extends "base.html" %}
 
-{% block content %}
-<div>
-    <h1> Here are the questions that match your search for: {{query}}</h1>   
-    {% load markdownify %}
-    <div class="question-div">
-        {% for question in questions %}
-        <div class="question-pane">
-            <div class="test-border question-box">
-            <div class="flex-space">
-                <h4 class="question-title-top"><a href="{% url 'show_question' pk=question.pk %}">{{question.title}}</a></h4>
-                <!-- <div>{{question.body|markdownify}}</div> -->
-                {% if question in user.q_faves.all %}
-                <a data-questionid="{{question.pk}}" class="q-toggler icon-a question-title-top toggler" id="q-favorite-toggle" href="#">&#x2605;</a>
-                {% else %}
-                <a data-questionid="{{question.pk}}" class="q-toggler icon-a question-title-top toggler" id="q-favorite-toggle" href="#">&#x2606;</a>
-                {% endif %}
-            </div>
-            <div class="flex-space">
-                <p class="attribution">by <a href="{% url 'user_profile' pk=question.author.pk %}">{{question.author.username}}</a> on {{question.edited}}</p>
-                {% if question in user.questions.all %}
-                <div class="v-center">
-                    <div>
-                        <a class="edit-delete" href="{% url 'edit_question' pk=question.pk %}">Edit Question</a>
-                        <a class="edit-delete" href="{% url 'delete_question' pk=question.pk %}">Delete Question</a>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-            </div>
-            <!-- {% for answer in question.answers.all %}
-            <div class="test-border">
-                <div>{{ answer.body|markdownify }}</div>
-                    <p>answered by {{answer.author.username}} on {{answer.created}}</p>
-                    {% if answer in user.a_faves.all %}
-                    <p>This is a fave.</p>
-                    {% else %}
-                    <p>This is not a fave.</p.>
-                    {% endif %}
-                </div>
-            </div>
-            {% endfor %} -->
-        </div>
-        {% endfor %}
-    </div>
-</div>
 
-<script>
-const togglerList = document.querySelectorAll(".q-toggler")    
-for (let toggler of togglerList) {
-    toggler.addEventListener("click", (e) => {
-        e.preventDefault()
-        const questionPk = toggler.dataset.questionid
-        fetch(`/question/${questionPk}/fave`, {
-            method: 'POST'
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.favorite) {
-                toggler.innerHTML = "&#x2605;"
-            } else {
-                toggler.innerHTML = "&#x2606;"
-            }
-        })
-    })
-}
-</script>
+{% block content %}
+<h3>Search Results</h3>
+
+<div class="question-container">
+{% for question in question %}
+    <div>
+        <h4><a href="{% url 'question_details' pk=question.pk %}">{{ question.question }}</a></h4>
+    </div>
+{% endfor %}
+</div>
 {% endblock %}

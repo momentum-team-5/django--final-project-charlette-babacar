@@ -1,186 +1,187 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.messages import success, error
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
 from .models import Answer, Question
-from .forms import AnswerForm, QuestionForm
+from .forms import AnswerForm, QuestionForm, SearchForm, ContactForm
 from users.models import User
-from django.views import View
 from django.http import JsonResponse
+from django.core.mail import send_mail, mail_admins
 
 # Create your views here.
-def list_questions(request):
+def question_list(request):
     user = request.user
     questions = user.questions.all()
-    return render(request, 'index.html', {"user":user, "questions":questions})
-    
+    return render(request, 'question_list.html', {"user":user, "questions":questions})
+
+@login_required
+def question_details(request, pk):
+    question = get_object_or_404(Question, pk=pk)
+    answers = question.answers.all()
+
+    if request.method =="GET":
+        form = AnswerForm()
+
+    else:
+        form = AnswerForm(data=request.POST)
+        if form.is_valid():
+            answer = form.save(commit=False)
+            answer.question = question
+            answer.save()
+            success(request, "Answer saved!")
+
+            return redirect(to="question_details", pk=question.pk)
+
+        else:
+            error(request, "Couldn't save your answer")
+
+    return render(request, "question_details.html", {"question": question, "answers": answers, "form": form})
+        
 @login_required
 def add_question(request):
     if request.method == 'GET':
         form = QuestionForm()
 
-    # else:
-    #     form = QuestionForm(data=request.POST)
-    #     if form.is_valid():
-    #         form = form.save(commit=False)
-    #         form.save()
-    #         return redirect(to='question_list')
+    else:
+        form = QuestionForm(data=request.POST)
+        if form.is_valid():
+            form = form.save(commit=False)
+            form.save()
+            return redirect(to='question_list')
+        else:
+            error(request, "There is a problem with your submission!")
 
     return render(request, "add_question.html", {"form": form})        
 
-    def post(self, request):
-        form = QuestionForm(data=request.POST)
-        user = request.user
-        if form.is_valid():
-            question = form.save(commit=False)
-            author = request.user
-            question.author = author
-            question.save()
-        return redirect(to="list_questions")
+@login_required
+def add_answer(request, pk):
+    question = get_object_or_404(Question, pk=pk)
 
-
-class ShowQuestion(View):
-    def get(self, request, pk):
-        user = request.user
+    if request.method == 'GET':
         form = AnswerForm()
-        question = get_object_or_404(Question, pk=pk)
-        return render(request, 'core/show_question.html', {"question": question, "user": user, "form":form})
-
-
-class AddAnswer(View):
-    def post(self, request, pk):
+        
+    else:
         form = AnswerForm(data=request.POST)
-        user = request.user
-        question = get_object_or_404(Question, pk=pk)
+    
         if form.is_valid():
             answer = form.save(commit=False)
-            answer.author = user
             answer.question = question
+            answer.user = request.user
             answer.save()
-            send_mail(
-                f'Your question, {answer.question.title}, has received an answer!',
-                f'''{answer.author.username} has answered your question-box question with the following:\n\n{answer.body}
-                    \n\nYou can view your question and all of its answers here:  http://127.0.0.1:8000/question/{answer.question.pk}''',
-                EMAIL_HOST_USER,
-                [answer.question.author.email],
-                fail_silently=False,
-            )
-        return redirect(to="show_question", pk=pk)
+            return redirect(to='question_list')
+
+        else:
+            error(request, "Problem with your submission.")
+
+    return render(request, "add_answer.html", {"form": form, "question": question})
 
 
-class DeleteAnswer(View):
-    def get(self, request, pk):
-        user = request.user
-        this_a_is_users = bool(Answer.objects.filter(author=user, pk=pk).count())
-        if this_a_is_users:
-            answer = get_object_or_404(Answer, pk=pk)
-            redirect_pk = answer.question.pk
-            answer.delete()
-            return redirect(to='show_question', pk=redirect_pk)
-        else: 
-            return redirect(to='list_questions')
+@login_required
+def edit_question(request, pk):
+    question = get_object_or_404(Question, pk=pk)
+    if request.user != question.user:
+        error(request, "Question can only be edited by the creator")
+        return redirect(to='question_list')
 
-
-class DeleteQuestion(View): 
-    def get(self, request, pk):
-        user = request.user
-        this_q_is_users = bool(Question.objects.filter(author=user, pk=pk).count())
-        if this_q_is_users:
-            question = get_object_or_404(Question, pk=pk)
-            question.delete()
-            return redirect(to='list_questions')
-        else: 
-            return redirect(to='list_questions')
-
-class EditAnswer(View):
-    def get(self, request, pk):
-        answer = get_object_or_404(Answer, pk=pk)
-        form= AnswerForm(instance=answer)
-        user = request.user
-        if bool(Answer.objects.filter(author=user, pk=pk).count()):
-            return render(request, 'core/edit_answer.html', {"question":answer.question, "answer":answer, "form":form})
-        else: 
-            return redirect(to="show_question", pk=answer.question.pk)
-
-    def post(self, request, pk):
-        user = request.user
-        answer = get_object_or_404(Answer, pk=pk)
-        form = AnswerForm(data=request.POST, instance=answer)
-        form.save()
-        return redirect(to="show_question", pk=answer.question.pk)
-
-
-class EditQuestion(View):
-    def get(self, request, pk):
-        question = get_object_or_404(Question, pk=pk)
+    if request.method == 'GET':
         form = QuestionForm(instance=question)
-        user = request.user
-        if bool(Question.objects.filter(author=user, pk=pk).count()):
-            return render(request, 'core/edit_question.html', {"form":form, "question":question})
-        else: 
-            return redirect(to="list_questions")
 
-    def post(self, request, pk):
-        user = request.user
-        question = get_object_or_404(Question, pk=pk)
+    else:
         form = QuestionForm(data=request.POST, instance=question)
-        form.save()
-        return redirect(to="show_question", pk=pk)
+        if form.is_valid():
+            form.save()
+            return redirect(to='question_list')
+
+    return render(request, "edit_question.html", {"form": form, "question": question})
 
 
-class SearchQuestions(View):
-    def get(self, request):
-        query = request.GET.get('query')
-        if query is not None:
-            questions = Question.objects.annotate(search=SearchVector("title", "body", "answers__body", "author__username")).filter(search=query).distinct("id").order_by("-pk")
+@login_required
+def delete_question(request, pk):
+    question = get_object_or_404(Question, pk=pk)
+    if request.user != question.user:
+        error(request, "Question can only be deleted by the creator.")
+        return redirect(to="question_list")
+
+    if request.method == 'POST':
+        question.delete()
+        success(request, "Question deleted!")
+
+        return redirect(to='question_list')
+
+    return render(request, "delete_question.html", {"question": question})
+
+
+@login_required
+def delete_answer(request, pk):
+    answer = get_object_or_404(Answer, pk=pk)
+    if request.user != answer.user:
+        error(request, "Answer can only be deleted by the creator.")
+        return redirect(to="question_list")
+
+    if request.method == 'POST':
+        answer.delete()
+        success(request, "Answer deleted!")
+
+        return redirect(to='question_list')
+
+    return render(request, "delete_answer.html", {"answer": answer})
+
+
+def search(request):
+    if request.method == "GET":
+        form = SearchForm()
+
+    elif request.method == "POST":
+        form = SearchForm(data=request.POST)
+
+    if form.is_valid():
+        question = form.cleaned_data['question']
+        question = Question.objects.filter(question__contains=question)
+
+        return render(request, "search_results.html", {"question": question})
+
+    return render(request, "search.html", {"form": form})
+
+
+@login_required
+def add_favorite(request, pk):
+    answer = get_object_or_404(Answer, id=pk)
+
+    if request.user.is_authenticated:
+        if answer.favoriting_users.filter(id=request.user.pk).count() == 0:
+            answer.favoriting_users.add(request.user)
+            message = "Favorite added!"
+
         else:
-            questions = None
-        return render(request, 'core/search_results.html', {"questions": questions, "query": query or ""})
+            message = "You can only favorite an answer once."
+        
+    else:
+        message = "Only signed in users can favorite answers."
+
+    numLikes = answer.numfavorites()
+
+    return JsonResponse({"message": message, "numLikes": numLikes})
 
 
-class UserProfile(View):
-    def get(self, request, pk):
-        question_user = get_object_or_404(User, pk=pk)
-        user = request.user
-        questions = Question.objects.filter(author=question_user)
-        return render(request, 'core/user_profile.html', 
-                        {"user":user, "questions":questions, "question_user": question_user})
+def contact_us(request):
+    if request.method == "GET":
+        form = ContactForm()
 
+    else:
+        form = ContactForm(data=request.POST)
 
-@method_decorator(csrf_exempt, name="dispatch")
-class ToggleFavoriteAnswer(View):
-    def post(self, request, pk):
-        user = request.user
-        answer = get_object_or_404(Answer, pk=pk)
-        if answer in user.a_faves.all():
-            user.a_faves.remove(answer)
-            return JsonResponse({"favorite": False})
+        if form.is_valid():
+            user_email = form.cleaned_data['email']
+            message_title = form.cleaned_data['title']
+            message_body = form.cleaned_data['body']
+
+            send_mail("Someone answered your question", "Your message has been answered! Go check out your message!", None, recipient_list=[user_email])
+            mail_admins(message_title, message_body, fail_silently=True)
+
+            success(request, "Your message was sent to a local server for testing, thank you!")
+
+            return redirect(to='question_list')
+
         else:
-            user.a_faves.add(answer)
-            return JsonResponse({"favorite": True})
+            error("Your message couldn't be sent.")
 
-
-@method_decorator(csrf_exempt, name="dispatch")
-class ToggleFavoriteQuestion(View):
-    def post(self, request, pk):
-        user = request.user
-        question = get_object_or_404(Question, pk=pk)
-        if question in user.q_faves.all():
-            user.q_faves.remove(question)
-            return JsonResponse({"favorite": False})
-        else:
-            user.q_faves.add(question)
-            return JsonResponse({"favorite": True})
-
-
-@method_decorator(csrf_exempt, name="dispatch")
-class ToggleCorrectAnswer(View):
-    def post(self, request, pk):
-        user = request.user
-        answer = get_object_or_404(Answer, pk=pk)
-        if user == answer.question.author:
-            answer.is_correct = not answer.is_correct
-            answer.save()
-            return JsonResponse({"correct": answer.is_correct})
-        else:
-            return redirect(to="list_questions")
+    return render(request, "contact_us.html", {"form": form})
