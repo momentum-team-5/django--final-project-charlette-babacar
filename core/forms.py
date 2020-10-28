@@ -6,15 +6,14 @@ class QuestionForm(forms.ModelForm):
     class Meta:
         model = Question
         fields = [
-            "title",
-            "body",
+            'question',
         ]
 
 class AnswerForm(forms.ModelForm):
     class Meta:
         model = Answer
         fields = [
-            "body",
+            "answer",
         ]
 
 class ContactForm(forms.Form):

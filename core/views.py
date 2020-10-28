@@ -9,9 +9,9 @@ from django.core.mail import send_mail, mail_admins
 
 # Create your views here.
 def question_list(request):
-    user = request.user
-    questions = user.questions.all()
-    return render(request, 'question_list.html', {"user":user, "questions":questions})
+    question = Question.objects.all()
+    
+    return render(request, 'question_list.html', {"question":question})
 
 @login_required
 def question_details(request, pk):
@@ -44,8 +44,9 @@ def add_question(request):
     else:
         form = QuestionForm(data=request.POST)
         if form.is_valid():
-            form = form.save(commit=False)
-            form.save()
+            question = form.save(commit=False)
+            question.author = request.user
+            question.save()
             return redirect(to='question_list')
         else:
             error(request, "There is a problem with your submission!")

@@ -2,25 +2,15 @@ from django.db import models
 from users.models import User
 
 class Question(models.Model):
-    title = models.CharField(max_length=255)
-    body = models.TextField()
-    created = models.DateTimeField(auto_now_add=True)
-    edited = models.DateTimeField(auto_now_add=True)
-    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="questions")
-    faved_by = models.ManyToManyField(User, related_name="q_faves", blank=True)
-
-     
-    def __str__(self):
-        return f"{self.title} -  {self.author}"
+    question = models.CharField(max_length=255, null=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=False, null=True)
 
 
 class Answer(models.Model):
-    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name="answers")
-    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="answers")  # Is this a problem?
-    created = models.DateTimeField(auto_now_add=True)
-    faved_by = models.ManyToManyField(User, related_name="a_faves", blank=True)
-    body = models.TextField()
-    is_correct = models.BooleanField(default=False)
+    answer = models.TextField()
+    question = models.ForeignKey('Question', on_delete=models.CASCADE, null=True, related_name='answers')
+    favoriting_users = models.ManyToManyField(User, related_name='favorite_answers')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=False, null=True)  
 
-    def __str__(self):
-        return f"Answer to: {self.question.title} by {self.author}"
+    def numfavorites(self):
+        return self.favoriting_users.count()
