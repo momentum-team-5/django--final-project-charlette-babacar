@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+
+{% block content %}
+<h3>Search Results</h3>
+
+<div class="question-container">
+{% for question in question %}
+    <div>
+        <h4><a href="{% url 'question_details' pk=question.pk %}">{{ question.question }}</a></h4>
+    </div>
+{% endfor %}
+</div>
+{% endblock %}
